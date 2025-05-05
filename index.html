@@ -1,15 +1,38 @@
-
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Thrust Fund Countdown</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: white; padding-top: 40px; }
-    canvas { display: block; margin: 0 auto; }
-    #countdown { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 36px; font-weight: bold; }
-    .wrapper { position: relative; width: 300px; height: 300px; margin: 0 auto; }
-    #message { margin-top: 30px; font-size: 18px; padding: 0 30px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: white;
+      padding-top: 40px;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+    }
+    #countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: bold;
+    }
+    .wrapper {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      margin: 0 auto;
+    }
+    #message {
+      margin-top: 30px;
+      font-size: 18px;
+      padding: 0 30px;
+    }
   </style>
 </head>
 <body>
@@ -22,17 +45,12 @@
   <audio id="victorySound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_603cd196a5.mp3" preload="auto"></audio>
 
   <script>
-    function getQueryParam(name) {
-      const params = new URLSearchParams(window.location.search);
-      return parseInt(params.get(name)) || 144000; // fallback to 40hr if no param
-    }
-
     const canvas = document.getElementById('timerCanvas');
     const ctx = canvas.getContext('2d');
     const countdownEl = document.getElementById("countdown");
     const messageEl = document.getElementById("message");
 
-    const totalSeconds = getQueryParam("duration");
+    const totalSeconds = 144000; // 40 hours
     let timeLeft = totalSeconds;
     let timer;
     let sparkleFrame = 0;
@@ -87,23 +105,6 @@
       ctx.clip();
       ctx.drawImage(gradientImage, 0, 0);
       ctx.restore();
-    }
-
-    function triggerCelebration() {
-      sparkleFrame = 0;
-      for (let i = 0; i < 50; i++) {
-        particles.push({
-          x: centerX,
-          y: centerY,
-          vx: (Math.random() - 0.5) * 4,
-          vy: (Math.random() - 0.5) * 4,
-          size: Math.random() * 3 + 1,
-          alpha: 1
-        });
-      }
-      const sound = document.getElementById('victorySound');
-      if (sound) sound.play();
-      drawFinalScene();
     }
 
     function drawFinalScene() {
@@ -165,19 +166,59 @@
       animationFrame = requestAnimationFrame(drawFinalScene);
     }
 
+    function triggerCelebration() {
+      sparkleFrame = 0;
+      for (let i = 0; i < 50; i++) {
+        particles.push({
+          x: centerX,
+          y: centerY,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          size: Math.random() * 3 + 1,
+          alpha: 1
+        });
+      }
+
+      const sound = document.getElementById('victorySound');
+      if (sound) sound.play();
+
+      drawFinalScene();
+    }
+
+    const phaseMessages = [
+      ["Digestive Phase: Body is still breaking down your last meal.", "Blood sugar and insulin are elevated as energy is distributed.", "Your body is in nutrient absorption mode.", "Glycogen stores are being topped up for short-term fuel.", "This is the post-meal peak — energy is abundant.", "Enzymes and hormones are active — digestion is a full-body process.", "You’re storing more than burning right now — be patient.", "Your fast has begun — but your body hasn't noticed yet.", "Internal systems are still in fed mode.", "Foundation is being laid for the upcoming shift."],
+      ["Glycogen Mobilization: Blood sugar starts dropping.", "Liver begins converting glycogen back into glucose.", "Insulin levels are slowly falling.", "You may feel hungry — your body is shifting gears.", "This is your metabolic handoff period.", "Energy is still coming from short-term reserves.", "Adrenaline and glucagon are starting to rise.", "Fat burn hasn't begun — but it's approaching.", "You're entering the first true fasting stage."],
+      ["Fat Burn Ignition: Glycogen stores running low.", "Fat metabolism begins in earnest.", "You’re now making and using ketones.", "Blood glucose stabilizes at a lower level.", "Mental clarity may start to improve.", "Autophagy is stirring for the first time.", "You're now burning stored fat for fuel.", "Fat provides a slow, clean burn — unlike glucose.", "You’re officially in a metabolic transition."],
+      ["Metabolic Flexibility: Your body prefers fat over sugar now.", "Ketones are rising steadily.", "Insulin levels are low and steady.", "You’re preserving muscle while burning fat.", "Brain performance may noticeably improve.", "Inflammation continues to fall.", "Autophagy ramps up.", "Your mitochondria are being optimized.", "This is peak adaptive function."],
+      ["Deep Fat Burn: Ketosis is strong.", "You’re now in consistent fat adaptation.", "Cellular repair is underway.", "HGH is elevated — helping maintain lean mass.", "Immune function is being regulated.", "You are burning stored energy at a high level.", "Ketones are feeding your brain and muscles.", "Energy is clean, consistent, and efficient."],
+      ["Autophagy Accelerated: Damaged cells are being recycled.", "Toxins and debris are being cleared out.", "Newer, stronger cells are being favored.", "Old proteins are being dismantled.", "You're healing and cleaning at a microscopic level.", "This is your body's spring cleaning mode.", "You're becoming more resilient, cell by cell."],
+      ["Rejuvenation Mode: Your biology is shifting.", "Stem cells begin activating.", "You're promoting regeneration — not just survival.", "Your gut is resting and healing.", "The immune system is being fine-tuned.", "Inflammatory markers drop further.", "Your inner systems are balancing and restoring."],
+      ["Immune Reset: White blood cells are being refreshed.", "Old immune cells are recycled.", "Regenerative processes dominate.", "You’re reinforcing long-term disease defense.", "Gut flora is stabilizing.", "Systemic inflammation continues to decline.", "You’re renewing at a core level."],
+      ["Peak Zone: Everything is activated.", "Autophagy, HGH, ketones — all elevated.", "You’re burning fat, preserving lean mass, and healing.", "Mental performance may feel sharp and focused.", "Longevity pathways are active.", "This is deep systemic optimization.", "Your metabolism is running on high performance."],
+      ["Completion: You’ve reached the 40-hour transformation.", "Stem cells are active across immune and metabolic tissues.", "Your body is fully primed for refeeding.", "You’ve reset key metabolic pathways.", "Your fasting journey ends with renewal.", "Welcome to the other side — rebuilt and ready."]
+    ];
+
     function updateTimer() {
       if (timeLeft === 0) {
         clearInterval(timer);
         countdownEl.textContent = "";
         messageEl.innerHTML = "<strong>You've completed your fast! Welcome to the transformation.</strong>";
-        window.ReactNativeWebView.postMessage("timerComplete");
-        triggerCelebration();
+                window.ReactNativeWebView.postMessage("timerComplete");
+triggerCelebration();
         return;
       }
 
       const progress = (totalSeconds - timeLeft) / totalSeconds;
       drawArc(progress);
       countdownEl.textContent = formatTime(timeLeft);
+
+      const phaseIndex = Math.floor((totalSeconds - timeLeft) / 14400); // 4 hours per phase
+      const messageCycle = Math.floor((totalSeconds - timeLeft) / 5);   // 5s per message
+      const messages = phaseMessages[phaseIndex] || ["..."];
+      const msg = messages[messageCycle % messages.length];
+
+      messageEl.textContent = msg;
+
       timeLeft--;
     }
 
