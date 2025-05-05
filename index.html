@@ -50,7 +50,8 @@
     const countdownEl = document.getElementById("countdown");
     const messageEl = document.getElementById("message");
 
-    const totalSeconds = 144000; // 40 hours
+    const urlParams = new URLSearchParams(window.location.search);
+    const totalSeconds = parseInt(urlParams.get('duration')) || 144000; // 40 hours
     let timeLeft = totalSeconds;
     let timer;
     let sparkleFrame = 0;
@@ -203,8 +204,7 @@
         clearInterval(timer);
         countdownEl.textContent = "";
         messageEl.innerHTML = "<strong>You've completed your fast! Welcome to the transformation.</strong>";
-                window.ReactNativeWebView.postMessage("timerComplete");
-triggerCelebration();
+        triggerCelebration();
         return;
       }
 
