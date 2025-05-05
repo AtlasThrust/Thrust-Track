@@ -50,9 +50,9 @@
     const countdownEl = document.getElementById("countdown");
     const messageEl = document.getElementById("message");
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const totalSeconds = parseInt(urlParams.get('duration')) || 144000; // 40 hours
-    let timeLeft = totalSeconds;
+    const params = new URLSearchParams(window.location.search);
+const totalSeconds = parseInt(params.get('duration')) || 144000;
+let timeLeft = totalSeconds;
     let timer;
     let sparkleFrame = 0;
     let animationFrame;
