@@ -203,7 +203,8 @@
         clearInterval(timer);
         countdownEl.textContent = "";
         messageEl.innerHTML = "<strong>You've completed your fast! Welcome to the transformation.</strong>";
-        triggerCelebration();
+                window.ReactNativeWebView.postMessage("timerComplete");
+triggerCelebration();
         return;
       }
 
