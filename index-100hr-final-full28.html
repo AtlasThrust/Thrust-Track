@@ -1,0 +1,612 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Thrust Fund Countdown</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: white;
+      padding-top: 40px;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+    }
+    #countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: bold;
+    }
+    .wrapper {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      margin: 0 auto;
+    }
+    #message {
+      margin-top: 30px;
+      font-size: 18px;
+      padding: 0 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <canvas id="timerCanvas" width="300" height="300"></canvas>
+    <div id="countdown">40:00:00</div>
+  </div>
+  <div id="message">You've just started your fast!</div>
+
+  <audio id="victorySound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_603cd196a5.mp3" preload="auto"></audio>
+
+  <script>
+    const canvas = document.getElementById('timerCanvas');
+    const ctx = canvas.getContext('2d');
+    const countdownEl = document.getElementById("countdown");
+    const messageEl = document.getElementById("message");
+
+    const totalSeconds = 360000; // 40 hours
+    let timeLeft = totalSeconds;
+    let timer;
+    let sparkleFrame = 0;
+    let animationFrame;
+    const particles = [];
+
+    const radius = 120;
+    const lineWidth = 40;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    const gradientCanvas = document.createElement('canvas');
+    gradientCanvas.width = 300;
+    gradientCanvas.height = 300;
+    const gctx = gradientCanvas.getContext('2d');
+
+    const gradient = gctx.createConicGradient(-0.5 * Math.PI, centerX, centerY);
+    gradient.addColorStop(0, 'red');
+    gradient.addColorStop(0.33, 'orange');
+    gradient.addColorStop(0.66, 'yellow');
+    gradient.addColorStop(1, 'green');
+
+    gctx.beginPath();
+    gctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    gctx.lineWidth = lineWidth;
+    gctx.strokeStyle = gradient;
+    gctx.stroke();
+
+    const gradientImage = new Image();
+    gradientImage.src = gradientCanvas.toDataURL();
+
+    function formatTime(seconds) {
+      const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+      const secs = String(seconds % 60).padStart(2, '0');
+      return `${hrs}:${mins}:${secs}`;
+    }
+
+    function drawArc(progress) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.lineWidth = lineWidth;
+      ctx.strokeStyle = '#eee';
+      ctx.stroke();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius + lineWidth / 2, -0.5 * Math.PI, -0.5 * Math.PI - 2 * Math.PI * progress, true);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(gradientImage, 0, 0);
+      ctx.restore();
+    }
+
+    function drawFinalScene() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.shadowBlur = 40;
+      ctx.shadowColor = '#ffd700';
+
+      const goldGradient = ctx.createRadialGradient(centerX - 30, centerY - 30, 10, centerX, centerY, radius);
+      goldGradient.addColorStop(0, '#fffacd');
+      goldGradient.addColorStop(0.3, '#ffd700');
+      goldGradient.addColorStop(0.8, '#daa520');
+      goldGradient.addColorStop(1, '#b8860b');
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius - lineWidth / 2, 0, 2 * Math.PI);
+      ctx.fillStyle = goldGradient;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      const scale = 1 + 0.05 * Math.sin(sparkleFrame * 0.1);
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = 'black';
+      ctx.font = 'bold 20px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = Math.min(1, sparkleFrame / 60);
+      ctx.fillText("YOU DID IT!", 0, 0);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
+        ctx.fill();
+        p.x += p.vx;
+        p.y += p.vy;
+        p.size *= 0.98;
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        p.alpha *= 0.96;
+        if (p.alpha < 0.05 || p.size < 0.5) particles.splice(i, 1);
+      }
+
+      if (Math.random() < 0.2) {
+        particles.push({
+          x: centerX, y: centerY,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          size: Math.random() * 3 + 1,
+          alpha: 1
+        });
+      }
+
+      sparkleFrame++;
+      animationFrame = requestAnimationFrame(drawFinalScene);
+    }
+
+    function triggerCelebration() {
+      sparkleFrame = 0;
+      for (let i = 0; i < 50; i++) {
+        particles.push({
+          x: centerX,
+          y: centerY,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          size: Math.random() * 3 + 1,
+          alpha: 1
+        });
+      }
+
+      const sound = document.getElementById('victorySound');
+      if (sound) sound.play();
+
+      drawFinalScene();
+    }
+
+    const phaseMessages = [
+// Phase 1 – Digestive Phase
+[
+  "Digestive Phase: Body is still breaking down your last meal.",
+  "Blood sugar and insulin are elevated as energy is distributed.",
+  "Your body is in nutrient absorption mode.",
+  "Glycogen stores are being topped up for short-term fuel.",
+  "This is the post-meal peak — energy is abundant.",
+  "Enzymes and hormones are active — digestion is a full-body process.",
+  "You’re storing more than burning right now — be patient.",
+  "Your fast has begun — but your body hasn't noticed yet.",
+  "Internal systems are still in fed mode.",
+  "Foundation is being laid for the upcoming shift."
+],
+
+// Phase 2 – Glycogen Mobilization
+[
+  "Glycogen Mobilization: Blood sugar starts dropping.",
+  "Liver begins converting glycogen back into glucose.",
+  "Insulin levels are slowly falling.",
+  "You may feel hungry — your body is shifting gears.",
+  "This is your metabolic handoff period.",
+  "Energy is still coming from short-term reserves.",
+  "Adrenaline and glucagon are starting to rise.",
+  "Fat burn hasn't begun — but it's approaching.",
+  "You're entering the first true fasting stage.",
+  "Your body is beginning to adapt."
+],
+
+// Phase 3 – Fat Burn Ignition
+[
+  "Fat Burn Ignition: Glycogen stores running low.",
+  "Fat metabolism begins in earnest.",
+  "You’re now making and using ketones.",
+  "Blood glucose stabilizes at a lower level.",
+  "Mental clarity may start to improve.",
+  "Autophagy is stirring for the first time.",
+  "You’re now burning stored fat for fuel.",
+  "Fat provides a slow, clean burn — unlike glucose.",
+  "You’re officially in a metabolic transition.",
+  "This is the start of a deeper transformation."
+],
+
+// Phase 4 – Metabolic Flexibility
+[
+  "Metabolic Flexibility: Body adapts to fat and ketone use.",
+  "Fat adaptation is stabilizing energy output.",
+  "Your hunger may be significantly reduced.",
+  "Cellular repair systems are increasingly active.",
+  "Energy levels may feel smoother and more sustained.",
+  "Inflammation markers may be declining.",
+  "Insulin resistance may be improving.",
+  "You’re becoming metabolically efficient.",
+  "Fat is now your primary fuel source.",
+  "Momentum is building in the right direction."
+],
+
+// Phase 5 – Deep Fat Burn
+[
+  "Deep Fat Burn: Ketones are dominant now.",
+  "Your liver is efficiently converting fat to energy.",
+  "Fat stores are being mobilized with precision.",
+  "Mitochondria are operating more cleanly.",
+  "Inflammation continues to reduce.",
+  "You may feel calm, focused, and in control.",
+  "Fat-derived energy is powering most systems.",
+  "Cells are signaling for deep repair.",
+  "This is fat-fueled momentum at its peak.",
+  "You’re entering sustained transformation."
+],
+
+// Phase 6 – Autophagy Accelerated
+[
+  "Autophagy Accelerated: Cleanup is intensifying.",
+  "Old or damaged cells are being recycled.",
+  "Cellular waste is being broken down.",
+  "Your immune system is being fine-tuned.",
+  "Inflammation continues to decline.",
+  "Longer-term health markers are improving.",
+  "You may notice enhanced calm or clarity.",
+  "Your body's deep housekeeping is active.",
+  "Signs of healing may begin to show.",
+  "Fat is still your dominant fuel."
+],
+
+// Phase 7 – Fat Fueled Performance
+[
+  "Fat Fueled Performance: Energy is stable and clean.",
+  "Cognitive performance may be elevated.",
+  "Cells are adapting for long-term efficiency.",
+  "You’re burning fat more economically.",
+  "There is minimal reliance on glucose.",
+  "Endurance systems are active and responsive.",
+  "You may feel unusually steady and alert.",
+  "Your body is thriving on internal fuel.",
+  "You’re running on high metabolic resilience.",
+  "This is peak fat-fueled functioning."
+],
+
+// Phase 8 – Immune Reset
+[
+  "Immune Reset: White blood cells are being refreshed.",
+  "Old immune cells are recycled.",
+  "Regenerative processes dominate.",
+  "You’re reinforcing long-term disease defense.",
+  "Gut flora is stabilizing.",
+  "Systemic inflammation continues to decline.",
+  "You’re renewing at a core level.",
+  "Immune programming is being rewritten.",
+  "This is immunometabolic healing.",
+  "You are detoxifying at a cellular level."
+],
+
+// Phase 9 – Peak Zone
+[
+  "Peak Zone: Everything is activated.",
+  "Autophagy, HGH, ketones — all elevated.",
+  "You’re burning fat, preserving lean mass, and healing.",
+  "Mental performance may feel sharp and focused.",
+  "Longevity pathways are active.",
+  "This is deep systemic optimization.",
+  "Your metabolism is running on high performance.",
+  "The body’s stress resistance is high.",
+  "You’re entering elite metabolic space.",
+  "Maximum repair and renewal underway."
+],
+
+// Phase 10 – Completion Prep
+[
+  "Completion Prep: You’re approaching the 40-hour threshold.",
+  "Body systems are harmonizing for refeeding.",
+  "Insulin sensitivity is greatly improved.",
+  "Liver and pancreas are fully rested.",
+  "Energy levels may begin to shift.",
+  "Hormonal rhythms are recalibrating.",
+  "You’ve reached a powerful metabolic checkpoint.",
+  "Start preparing mentally for the next phase.",
+  "Deep cellular upgrades are now locked in.",
+  "Your transformation is underway — not over."
+],
+
+  // Phase 11 – Real Messages
+  [
+    "Ketones are now your dominant fuel source",
+    "Muscle preservation remains stable",
+    "Mitochondrial efficiency continues to improve",
+    "Mental performance often feels consistent and sharp",
+    "Fat loss continues at a sustainable pace",
+    "Your metabolism is running clean and stable",
+    "Cognitive fog, if any, tends to lift here",
+    "You may feel calm, even meditative",
+    "This is a balanced deep burn phase",
+    "You're adapting beyond simple fasting"
+  ],
+
+  // Phase 12 – Real Messages
+  [
+    "HGH remains elevated, supporting muscle maintenance",
+    "Your body is cycling through deeper tissue repair",
+    "Fat is still your primary fuel — no crashes",
+    "Joint pain and inflammation often ease here",
+    "Blood sugar control is further improved",
+    "Mild euphoria is sometimes reported in this zone",
+    "You’re adapting to a low-insulin environment",
+    "Cellular renewal is a dominant priority now",
+    "Most people feel clear and steady here",
+    "You’re unlocking sustained fasting stability"
+  ],
+
+  // Phase 13 – Real Messages
+  [
+    "Autophagy continues eliminating damaged material",
+    "You may feel surprisingly energetic at this point",
+    "Fat-derived ketones are feeding the brain efficiently",
+    "Old cells are making way for stronger replacements",
+    "Gastrointestinal cells are getting a full rest",
+    "Your metabolism is now deeply recalibrated",
+    "This is not starvation — this is precision healing",
+    "You’re fasting longer, but struggling less",
+    "Mood and emotional control may feel steadier",
+    "You are working with your biology, not against it"
+  ],
+
+  // Phase 14 – Real Messages
+  [
+    "Your digestive system is enjoying maximum rest",
+    "Fat loss continues without nutritional input",
+    "Old immune cells are still being recycled",
+    "Gut health is stabilizing further",
+    "You’re experiencing deeper metabolic clearance",
+    "Cravings are often gone or very mild here",
+    "Energy is more balanced than most expect",
+    "Fasting efficiency improves with each repetition",
+    "You’re in tune with internal rhythms now",
+    "The benefits are compounding hour by hour"
+  ],
+
+  // Phase 15 – Real Messages
+  [
+    "You are deep in the metabolic healing zone",
+    "Longevity-promoting genes are still switched on",
+    "You’re encouraging regeneration over survival",
+    "Fat stores are still being accessed cleanly",
+    "Brain chemistry is often remarkably stable here",
+    "Muscle tissue is being protected by hormonal shifts",
+    "No new fuel means your body continues refining",
+    "Cells are working smarter, not harder",
+    "You are in the middle of extended adaptation",
+    "This is expert-level biological cooperation"
+  ],
+
+  // Phase 16 – Real Messages
+  [
+    "Your organs are operating with minimal interference",
+    "Recovery and detox processes are fully active",
+    "Fatty acids are still being metabolized efficiently",
+    "Cell signaling continues adjusting for longevity",
+    "This is not suffering — this is self-directed repair",
+    "You're in sync with metabolic efficiency",
+    "Biochemical signals indicate a healing state",
+    "You are now in an elite physiological rhythm",
+    "Your body is recalibrating hormone sensitivity",
+    "This is silent, cellular-level progress"
+  ],
+
+  // Phase 17 – Real Messages
+  [
+    "You’ve surpassed the 70-hour milestone",
+    "Your body has not just adjusted — it has optimized",
+    "Long-term disease risk factors are being reduced",
+    "You are influencing epigenetic expression positively",
+    "Mitochondrial networks are strengthening",
+    "You are becoming metabolically resilient",
+    "Cell renewal and replacement is ongoing",
+    "You’re now running on biological mastery",
+    "Blood pressure may normalize further here",
+    "These hours are rare — and powerful"
+  ],
+
+  // Phase 18 – Real Messages
+  [
+    "Your body is reinforcing everything achieved so far",
+    "Nothing is being wasted — only refined",
+    "Brain function is often razor-sharp at this point",
+    "The immune system is highly efficient now",
+    "Autophagy, ketones, HGH — all remain elevated",
+    "You are healing, not just surviving",
+    "This depth of fast is beyond weight loss",
+    "You’re reaching into regenerative territory",
+    "Muscle mass remains protected through smart signaling",
+    "Few people ever explore this far — you are"
+  ],
+
+  // Phase 19 – Real Messages
+  [
+    "You’re approaching the final deep fast milestone",
+    "Your body is not shutting down — it’s opening up",
+    "This is a neurological and metabolic sweet spot",
+    "Tissues across the body are still regenerating",
+    "No food, but maximum internal nourishment",
+    "This is fasting intelligence, not starvation",
+    "You are now highly fat-adapted and efficient",
+    "Blood lipids and glucose often show marked improvement",
+    "Hormones are resetting for better future balance",
+    "This is mastery of discipline and biochemistry"
+  ],
+
+  // Phase 20 – Real Messages
+  [
+    "You’re at the 90-hour mark — almost complete",
+    "Final stage autophagy is peaking",
+    "Long-term memory pathways may feel enhanced",
+    "Insulin sensitivity is at its best here",
+    "Digestive system is fully rested and ready",
+    "Your body is primed for a clean refeed",
+    "The fast has been hard, but meaningful",
+    "Your cells are clean, efficient, and prepared",
+    "You’ve overcome false hunger signals repeatedly",
+    "The finish line is in sight — but so is the future"
+  ],
+
+  // Phase 21 – Real Messages
+  [
+    "You’ve crossed into the final stretch",
+    "Every hour now reinforces cellular intelligence",
+    "Your fast is no longer depleting — it’s refining",
+    "Think of this as polishing your inner systems",
+    "There is wisdom coded into your metabolism",
+    "Your gut is ready to reawaken soon",
+    "This has become a mastery of mind and body",
+    "You are prepared — not starved",
+    "These moments are your health investment",
+    "You’ve fasted with intent, not ignorance"
+  ],
+
+  // Phase 22 – Real Messages
+  [
+    "Final metabolic shifts are taking place",
+    "Ketone levels may slightly begin to taper",
+    "You are in biochemical equilibrium",
+    "Your digestive tract is quiet but alert",
+    "Stem cells have been quietly preparing",
+    "You’ve earned a controlled, powerful refeed",
+    "This isn’t a diet — it’s repair through absence",
+    "Blood sugar regulation is optimal right now",
+    "You are demonstrating cellular discipline",
+    "You’ve made it through the edge — and beyond"
+  ],
+
+  // Phase 23 – Real Messages
+  [
+    "Hydration and mineral balance are vital now",
+    "Your digestive fire is ready to reignite",
+    "Mental clarity is often at its peak here",
+    "Emotional regulation is typically smoother",
+    "You’ve trained your hunger response system",
+    "The finish is no longer a goal — it’s a transition",
+    "Autonomic nervous system has been rebalanced",
+    "This fast will echo in your biology for weeks",
+    "You’ve proven that less really can be more",
+    "You’ve become the rare — the disciplined — the rebuilt"
+  ],
+
+  // Phase 24 – Real Messages
+  [
+    "Reintroduction begins soon — do so gently",
+    "Your microbiome is sensitive — nurture it",
+    "The first bite will awaken dormant systems",
+    "Stick to simple, low-inflammatory foods first",
+    "Refined sugars or seed oils will undo this progress",
+    "Chew slowly — digestion starts in the mouth",
+    "This is not a reward — it’s a responsibility",
+    "Think nutrients, not indulgence",
+    "Celebrate with care — this was sacred effort",
+    "You are re-entering — wisely"
+  ],
+
+  // Phase 25 – Real Messages
+  [
+    "Within 24 hours your gut flora will begin shifting",
+    "Feed your body what it needs, not what it craves",
+    "Introduce protein gradually and mindfully",
+    "Electrolytes and hydration remain key post-fast",
+    "Listen to your body’s signals without judgment",
+    "You’ll absorb nutrients more efficiently now",
+    "A gentle walk post-fast can aid circulation",
+    "This window can solidify long-term changes",
+    "Consistency after fasting is where gains compound",
+    "You are in post-fast optimization — honor that"
+  ],
+
+  // Phase 26 – Real Messages
+  [
+    "Track how you feel in the hours after refeeding",
+    "Digestive strength will return in waves",
+    "You’ve done something most won’t even attempt",
+    "This discipline will echo in your habits",
+    "Rebuilding begins now — meal by meal",
+    "Sleep, sun, and breathwork will amplify results",
+    "You’ve made an imprint at a cellular level",
+    "The benefits will outlast the hunger",
+    "Your fast was a signal — your lifestyle is the response",
+    "The cycle of renewal continues"
+  ],
+
+  // Phase 27 – Real Messages
+  [
+    "The body remembers — it will fast more easily next time",
+    "You’ve reduced disease risk at a root level",
+    "Your metabolism has been recalibrated",
+    "The cravings you conquered will stay quiet longer",
+    "You’ve made it easier to say no going forward",
+    "A 100-hour fast is now part of your story",
+    "Use this as a launchpad, not a loophole",
+    "The biology of change has been activated",
+    "You don’t just survive — you reshape",
+    "You now know what you’re capable of"
+  ],
+
+  // Phase 28 – Real Messages
+  [
+    "100 hours. No shortcuts. Just you and the work",
+    "This was ancient — and personal",
+    "You’ve rebuilt yourself from the inside out",
+    "No supplement or product could match this",
+    "Your blood, cells, and spirit have shifted",
+    "There is pride in restraint — and power in silence",
+    "You’ve made space — biologically and emotionally",
+    "This is a milestone that few reach",
+    "Remember this feeling — bottle it up",
+    "You’ve finished the fast — but started a transformation"
+  ]
+];
+
+    function updateTimer() {
+      if (timeLeft === 0) {
+        clearInterval(timer);
+        countdownEl.textContent = "";
+        messageEl.innerHTML = "<strong>You've completed your fast! Welcome to the transformation.</strong>";
+                window.ReactNativeWebView.postMessage("timerComplete");
+triggerCelebration();
+        return;
+      }
+
+      const progress = (totalSeconds - timeLeft) / totalSeconds;
+      drawArc(progress);
+      countdownEl.textContent = formatTime(timeLeft);
+
+      const phaseIndex = Math.floor((totalSeconds - timeLeft) / 14400); // 4 hours per phase
+      const messageCycle = Math.floor((totalSeconds - timeLeft) / 5);   // 5s per message
+      const messages = phaseMessages[phaseIndex] || ["..."];
+      const msg = messages[messageCycle % messages.length];
+
+      messageEl.textContent = msg;
+
+      timeLeft--;
+    }
+
+    gradientImage.onload = function () {
+      updateTimer();
+      timer = setInterval(updateTimer, 1000);
+    };
+  </script>
+</body>
+</html>
